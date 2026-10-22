@@ -4,7 +4,6 @@ Welkom! Dit is het groepsproject PX 3 van Elektronica-ICT aan VIVES Hogeschool.
 We bouwen een machine die zelf pannenkoeken bakt. 
 [afbeelding](Media/Poster/Poster_versie1.png)
  
----
  
 ## In het kort
  
