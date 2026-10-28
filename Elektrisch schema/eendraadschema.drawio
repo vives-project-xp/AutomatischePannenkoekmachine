@@ -49,7 +49,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="GyWCnw4UG0VtO3orW8cj-17" value="&lt;font style=&quot;font-size: 16px;&quot;&gt;LM2596&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=4;fillColor=#B3B3B3;strokeColor=#1A1A1A;" parent="1" vertex="1">
+        <mxCell id="GyWCnw4UG0VtO3orW8cj-17" value="&lt;font style=&quot;font-size: 16px;&quot;&gt;D24V10F5&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=4;fillColor=#B3B3B3;strokeColor=#1A1A1A;" parent="1" vertex="1">
           <mxGeometry x="-1900" y="360" width="90" height="120" as="geometry" />
         </mxCell>
         <mxCell id="GyWCnw4UG0VtO3orW8cj-18" value="0V" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
@@ -1301,6 +1301,15 @@
               <mxPoint x="-1530" y="1520" />
               <mxPoint x="-1060" y="1520" />
               <mxPoint x="-1060" y="1460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vYCisQedWlc0-N4qmTHR-42" value="" style="endArrow=oval;html=1;rounded=0;strokeWidth=4;strokeColor=#ffffff;startArrow=oval;startFill=1;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="-1150" y="1370" as="sourcePoint" />
+            <mxPoint x="-1150" y="1470" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="-1150" y="1410" />
             </Array>
           </mxGeometry>
         </mxCell>
