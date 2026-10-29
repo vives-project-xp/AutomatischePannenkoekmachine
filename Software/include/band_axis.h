@@ -16,7 +16,7 @@
 
 class BandAxis {
  public:
-  enum class Toestand : uint8_t { IDLE, HOMING, MOVING, ERROR };
+  enum class Toestand : uint8_t { IDLE, HOMING, MOVING, RUNNING, ERROR };
 
   bool begin(FastAccelStepperEngine &engine);
   void update();  // elke loop-doorgang aanroepen, blokkeert nooit
@@ -25,6 +25,7 @@ class BandAxis {
   bool home();
   bool gaNaar(float mm);     // absolute positie
   bool verplaats(float mm);  // relatief, mag negatief
+  bool draaiContinu(bool vooruit);  // blijft draaien tot 'stop', zonder limieten
   bool zetSnelheid(float mmPerS);
   bool zetVersnelling(float mmPerS2);
   void stop();        // rustig afremmen
@@ -58,8 +59,13 @@ class BandAxis {
   void zetProfiel(float mmPerS, float mmPerS2);
   void updateHoming();
   void fout(const char *tekst);
+  void forceStopAlle();
+  void stopMoveAlle();
+  void pasProfielToeAlle();
+  void zetPositieAlle(int32_t stappen);
 
-  FastAccelStepper *_stepper = nullptr;
+  FastAccelStepper *_stepper = nullptr;   // motor 1: STEP 25 / DIR 26
+  FastAccelStepper *_stepper2 = nullptr;  // motor 2: STEP 18 / DIR 19
   Toestand _toestand = Toestand::IDLE;
   HomeFase _homeFase = HomeFase::ZOEK_SNEL;
   bool _gehomed = false;

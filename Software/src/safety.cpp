@@ -80,7 +80,10 @@ void update() {
 
 bool s1Geraakt() { return s1.stabiel; }  // NC-contact: HIGH = geraakt/kabel los
 
-bool spanningAanwezig() { return digitalRead(PIN_NOODSTOP) == HIGH; }
+bool spanningAanwezig() {
+  if (TEST_NOODSTOP_UIT) return true;  // testmodus, zie config.h
+  return digitalRead(PIN_NOODSTOP) == HIGH;
+}
 
 bool vergrendeld() { return isVergrendeld; }
 
