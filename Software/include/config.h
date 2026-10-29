@@ -16,6 +16,8 @@ constexpr uint8_t PIN_STEP_BAND  = 25;  // STEP bandmotor 1
 constexpr uint8_t PIN_DIR_BAND   = 26;  // DIR bandmotor 1
 constexpr uint8_t PIN_STEP_BAND2 = 18;  // STEP bandmotor 2
 constexpr uint8_t PIN_DIR_BAND2  = 19;  // DIR bandmotor 2
+constexpr uint8_t PIN_STEP_SPATEL = 27;  // STEP derde motor
+constexpr uint8_t PIN_DIR_SPATEL  = 14;  // DIR derde motor
 constexpr uint8_t PIN_EN_DRIVERS = 13;  // EN van ALLE drivers, actief LAAG
 constexpr uint8_t PIN_S1_HOME    = 16;  // eindschakelaar S1 (NC naar GND)
 constexpr uint8_t PIN_NOODSTOP   = 35;  // 24V-detectie (input-only)
@@ -53,6 +55,11 @@ constexpr float VERSNELLING_MM_S2  = 50.0f;   // startwaarde na opstarten
 // Bovengrenzen voor de commando's 'speed' en 'accel' (tegen typfouten)
 constexpr float SNELHEID_LIMIET_MM_S   = 200.0f;
 constexpr float VERSNELLING_LIMIET_MM_S2 = 2000.0f;
+
+// Derde motor: testpatroon, continu draaien en richting wisselen (zie spatel_motor.cpp)
+constexpr uint32_t SPATEL_SNELHEID_HZ   = 400;   // stappen/s
+constexpr uint32_t SPATEL_VERSNELLING   = 2000;  // stappen/s2
+constexpr uint32_t SPATEL_RICHTING_MS   = 2000;  // elke 2 s van richting wisselen
 
 // ---------------------------------------------------------------------------
 // Homing

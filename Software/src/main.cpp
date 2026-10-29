@@ -12,9 +12,11 @@
 #include "band_axis.h"
 #include "config.h"
 #include "safety.h"
+#include "spatel_motor.h"
 
 FastAccelStepperEngine engine;  // gedeeld door alle (toekomstige) assen
 BandAxis band;
+SpatelMotor spatel;
 
 // ---------------------------------------------------------------------------
 // Seriele commando's
@@ -154,6 +156,10 @@ void setup() {
     Serial.println(F("!! FOUT: stappenmotor BAND kon niet worden aangemaakt."));
   }
 
+  if (!spatel.begin(engine)) {
+    Serial.println(F("!! FOUT: derde stappenmotor kon niet worden aangemaakt."));
+  }
+
   toonHelp();
 
   if (TEST_AUTOSTART_RUN) {
@@ -167,5 +173,6 @@ void setup() {
 void loop() {
   Safety::update();  // noodstop en eindschakelaars
   band.update();     // toestandsmachine van de band
+  spatel.update();   // testpatroon derde motor
   leesSerieel();     // testinterface
 }
