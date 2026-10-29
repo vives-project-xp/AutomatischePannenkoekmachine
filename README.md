@@ -79,7 +79,7 @@ Wij zijn studenten aan VIVES Hogeschool:
 
 | Naam | Opleiding | Studiejaar |
 | --- | --- | --- |
-| Brent Viveyn | Game & Entertainment Technology | 2de jaar |
+| Brent Vileyn | Game & Entertainment Technology | 2de jaar |
 | Hengda Lin | Network & System Administration | 2de jaar |
 | Lars Ysebaert | Game & Entertainment Technology | 2de jaar |
 | Mauro Carlier | Game & Entertainment Technology | 3de jaar |
