@@ -12,8 +12,10 @@
 // ---------------------------------------------------------------------------
 // Pinnen
 // ---------------------------------------------------------------------------
-constexpr uint8_t PIN_STEP_BAND  = 25;  // STEP, gedeeld door beide banddrivers
-constexpr uint8_t PIN_DIR_BAND   = 26;  // DIR, gedeeld door beide banddrivers
+constexpr uint8_t PIN_STEP_BAND  = 25;  // STEP bandmotor 1
+constexpr uint8_t PIN_DIR_BAND   = 26;  // DIR bandmotor 1
+constexpr uint8_t PIN_STEP_BAND2 = 18;  // STEP bandmotor 2
+constexpr uint8_t PIN_DIR_BAND2  = 19;  // DIR bandmotor 2
 constexpr uint8_t PIN_EN_DRIVERS = 13;  // EN van ALLE drivers, actief LAAG
 constexpr uint8_t PIN_S1_HOME    = 16;  // eindschakelaar S1 (NC naar GND)
 constexpr uint8_t PIN_NOODSTOP   = 35;  // 24V-detectie (input-only)
@@ -39,12 +41,14 @@ constexpr float SLAGLENGTE_MM = 600.0f;  // bruikbare slag (nog na te meten)
 // Draairichting: true = DIR hoog laat de positie oplopen (weg van S1).
 // Rijdt de brug bij 'home' WEG van S1, zet dit dan op false.
 constexpr bool DIR_HOOG_TELT_OP = true;
+// Zelfde voor bandmotor 2. Draait die tegen motor 1 in, zet dit dan op false.
+constexpr bool DIR2_HOOG_TELT_OP = true;
 
 // ---------------------------------------------------------------------------
 // Bewegingsprofiel
 // ---------------------------------------------------------------------------
-constexpr float MAX_SNELHEID_MM_S  = 50.0f;   // startwaarde na opstarten
-constexpr float VERSNELLING_MM_S2  = 200.0f;  // startwaarde na opstarten
+constexpr float MAX_SNELHEID_MM_S  = 5.0f;    // startwaarde na opstarten (laag voor de test)
+constexpr float VERSNELLING_MM_S2  = 50.0f;   // startwaarde na opstarten
 
 // Bovengrenzen voor de commando's 'speed' en 'accel' (tegen typfouten)
 constexpr float SNELHEID_LIMIET_MM_S   = 200.0f;
@@ -61,6 +65,15 @@ constexpr float HOME_EXTRA_ZOEK_MM       = 50.0f;  // marge bovenop de slaglengt
 // Afstand tussen het schakelpunt van S1 en positie 0. Zo is S1 op positie 0
 // weer vrij en geeft 'goto 0' geen valse eindschakelaarfout.
 constexpr float HOME_OFFSET_MM = 3.0f;
+
+// ---------------------------------------------------------------------------
+// Testmodus (voor de bandmotoren op de werkbank)
+// ---------------------------------------------------------------------------
+// TEST_NOODSTOP_UIT: negeert de 24V-detectie op GPIO35 (nog niet aangesloten).
+// TEST_AUTOSTART_RUN: drivers aan en beide bandmotoren draaien na het opstarten
+// meteen continu vooruit, tot 'stop'. Zet beide op false voor normaal gebruik.
+constexpr bool TEST_NOODSTOP_UIT   = true;
+constexpr bool TEST_AUTOSTART_RUN  = true;
 
 // ---------------------------------------------------------------------------
 // Veiligheid en communicatie

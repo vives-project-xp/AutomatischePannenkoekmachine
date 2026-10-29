@@ -24,6 +24,7 @@ static void toonHelp() {
   Serial.println(F("  home            homing op S1"));
   Serial.println(F("  goto <mm>       absolute positie"));
   Serial.println(F("  move <mm>       relatief, mag negatief"));
+  Serial.println(F("  run [back]      continu draaien tot 'stop' (zonder homing)"));
   Serial.println(F("  speed <mm/s>    maximale snelheid"));
   Serial.println(F("  accel <mm/s2>   versnelling"));
   Serial.println(F("  stop            rustig afremmen"));
@@ -80,6 +81,12 @@ static void voerUit(char *regel) {
     if (band.gaNaar(getal)) Serial.printf("Naar %.2f mm\n", getal);
   } else if (!strcmp(cmd, "move")) {
     if (band.verplaats(getal)) Serial.printf("Verplaats %+.2f mm\n", getal);
+  } else if (!strcmp(cmd, "run")) {
+    bool terug = arg != nullptr && (!strcasecmp(arg, "back") || !strcasecmp(arg, "terug"));
+    if (band.draaiContinu(!terug)) {
+      Serial.printf("Continu draaien (%s), typ 'stop' om te stoppen\n",
+                    terug ? "terug" : "vooruit");
+    }
   } else if (!strcmp(cmd, "speed")) {
     if (band.zetSnelheid(getal)) Serial.printf("Snelheid = %.1f mm/s\n", getal);
   } else if (!strcmp(cmd, "accel")) {
@@ -148,6 +155,13 @@ void setup() {
   }
 
   toonHelp();
+
+  if (TEST_AUTOSTART_RUN) {
+    Safety::zetDrivers(true);
+    if (band.draaiContinu(true)) {
+      Serial.println(F("TESTMODUS: beide motoren draaien continu, typ 'stop' om te stoppen"));
+    }
+  }
 }
 
 void loop() {

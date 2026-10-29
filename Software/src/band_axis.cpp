@@ -1,4 +1,4 @@
-/*
+﻿/*
  * band_axis.cpp
  *
  * Logica van de bandas: omrekenen van millimeter naar stappen, de
@@ -31,6 +31,15 @@ bool BandAxis::begin(FastAccelStepperEngine &engine) {
     return false;
   }
   _stepper->setDirectionPin(PIN_DIR_BAND, DIR_HOOG_TELT_OP);
+
+  // Tweede bandmotor op eigen STEP/DIR-pinnen; krijgt alle commando's mee
+  _stepper2 = engine.stepperConnectToPin(PIN_STEP_BAND2);
+  if (_stepper2 == nullptr) {
+    _toestand = Toestand::ERROR;
+    _fout = "stappenmotor BAND 2 kon niet worden aangemaakt";
+    return false;
+  }
+  _stepper2->setDirectionPin(PIN_DIR_BAND2, DIR2_HOOG_TELT_OP);
   // De EN-lijn is gedeeld met de andere drivers en wordt door Safety beheerd,
   // dus hier bewust geen setEnablePin().
   zetProfiel(_snelheid, _versnelling);
@@ -46,7 +55,7 @@ void BandAxis::update() {
   // Noodstop heeft altijd voorrang op alles
   if (Safety::vergrendeld()) {
     if (!_noodstopVerwerkt) {
-      _stepper->forceStop();  // meteen stoppen, zonder afremmen
+      forceStopAlle();  // meteen stoppen, zonder afremmen
       _gehomed = false;       // de brug kan uitgebold of verschoven zijn
       _toestand = Toestand::ERROR;
       _fout = "noodstop / geen 24 V";
@@ -67,6 +76,14 @@ void BandAxis::update() {
       } else if (!_stepper->isRunning()) {
         _toestand = Toestand::IDLE;
         Serial.printf("Band staat stil op %.2f mm\n", positieMm());
+      }
+      break;
+
+    case Toestand::RUNNING:
+      // Continu draaien: S1 en softwarelimieten gelden hier bewust niet
+      if (!_stepper->isRunning()) {
+        _toestand = Toestand::IDLE;
+        Serial.println(F("Band staat stil."));
       }
       break;
 
@@ -109,7 +126,7 @@ void BandAxis::updateHoming() {
   switch (_homeFase) {
     case HomeFase::ZOEK_SNEL:
       if (s1) {
-        _stepper->forceStop();
+        forceStopAlle();
         _homeFase = HomeFase::STOP_NA_SNEL;
       } else if (staatStil) {
         fout("homing: S1 niet gevonden binnen slaglengte + marge");
@@ -137,7 +154,7 @@ void BandAxis::updateHoming() {
 
     case HomeFase::ZOEK_TRAAG:
       if (s1) {
-        _stepper->forceStop();
+        forceStopAlle();
         _homeFase = HomeFase::STOP_NA_TRAAG;
       } else if (staatStil) {
         fout("homing: S1 niet teruggevonden bij trage benadering");
@@ -147,7 +164,7 @@ void BandAxis::updateHoming() {
     case HomeFase::STOP_NA_TRAAG:
       if (staatStil) {
         // Schakelpunt ligt HOME_OFFSET_MM onder nul, zodat S1 op 0 vrij is
-        _stepper->setCurrentPosition(-mmNaarStappen(HOME_OFFSET_MM));
+        zetPositieAlle(-mmNaarStappen(HOME_OFFSET_MM));
         _homeFase = HomeFase::NAAR_NUL;
         startRelatief(HOME_OFFSET_MM, HOME_SNELHEID_SNEL_MM_S);
       }
@@ -191,9 +208,28 @@ bool BandAxis::verplaats(float mm) {
   return naarStappen(basis + mmNaarStappen(mm));
 }
 
+bool BandAxis::draaiContinu(bool vooruit) {
+  if (!kanStarten()) return false;
+  if (_toestand != Toestand::IDLE) {
+    Serial.println(F("Geweigerd: band is bezig, typ eerst 'stop'."));
+    return false;
+  }
+  _gehomed = false;  // zonder limieten is de positie daarna niet meer betrouwbaar
+  zetProfiel(_snelheid, _versnelling);
+  if (vooruit) {
+    _stepper->runForward();
+    if (_stepper2) _stepper2->runForward();
+  } else {
+    _stepper->runBackward();
+    if (_stepper2) _stepper2->runBackward();
+  }
+  _toestand = Toestand::RUNNING;
+  return true;
+}
+
 bool BandAxis::naarStappen(int32_t doel) {
-  if (_toestand == Toestand::HOMING) {
-    Serial.println(F("Geweigerd: homing is bezig."));
+  if (_toestand == Toestand::HOMING || _toestand == Toestand::RUNNING) {
+    Serial.println(F("Geweigerd: band is bezig, typ eerst 'stop'."));
     return false;
   }
   if (!_gehomed) {
@@ -212,7 +248,8 @@ bool BandAxis::naarStappen(int32_t doel) {
   }
 
   zetProfiel(_snelheid, _versnelling);
-  if (_stepper->moveTo(doel) != MOVE_OK) {
+  if (_stepper->moveTo(doel) != MOVE_OK ||
+      (_stepper2 && _stepper2->moveTo(doel) != MOVE_OK)) {
     fout("beweging kon niet worden gestart");
     return false;
   }
@@ -223,16 +260,16 @@ bool BandAxis::naarStappen(int32_t doel) {
 void BandAxis::stop() {
   if (_stepper == nullptr) return;
   if (_toestand == Toestand::HOMING) {
-    _stepper->stopMove();
+    stopMoveAlle();
     _homeFase = HomeFase::AFBREKEN;
-  } else if (_toestand == Toestand::MOVING) {
-    _stepper->stopMove();  // afremmen met de ingestelde versnelling
+  } else if (_toestand == Toestand::MOVING || _toestand == Toestand::RUNNING) {
+    stopMoveAlle();  // afremmen met de ingestelde versnelling
   }
 }
 
 void BandAxis::vrijgeven() {
   if (_stepper == nullptr) return;
-  _stepper->forceStop();
+  forceStopAlle();
   // Zonder houdkoppel kan de brug verschuiven: de positie is niet meer zeker
   _gehomed = false;
   if (_toestand != Toestand::ERROR) _toestand = Toestand::IDLE;
@@ -245,10 +282,10 @@ bool BandAxis::zetSnelheid(float mmPerS) {
     return false;
   }
   _snelheid = mmPerS;
-  if (_toestand == Toestand::MOVING) {
+  if (_toestand == Toestand::MOVING || _toestand == Toestand::RUNNING) {
     // Ook de lopende beweging aanpassen (homing houdt zijn eigen snelheid)
     zetProfiel(_snelheid, _versnelling);
-    _stepper->applySpeedAcceleration();
+    pasProfielToeAlle();
   }
   return true;
 }
@@ -260,9 +297,9 @@ bool BandAxis::zetVersnelling(float mmPerS2) {
     return false;
   }
   _versnelling = mmPerS2;
-  if (_toestand == Toestand::MOVING) {
+  if (_toestand == Toestand::MOVING || _toestand == Toestand::RUNNING) {
     zetProfiel(_snelheid, _versnelling);
-    _stepper->applySpeedAcceleration();
+    pasProfielToeAlle();
   }
   return true;
 }
@@ -278,6 +315,26 @@ bool BandAxis::resetFout() {
 // ---------------------------------------------------------------------------
 // Hulpfuncties
 // ---------------------------------------------------------------------------
+void BandAxis::forceStopAlle() {
+  _stepper->forceStop();
+  if (_stepper2) _stepper2->forceStop();
+}
+
+void BandAxis::stopMoveAlle() {
+  _stepper->stopMove();
+  if (_stepper2) _stepper2->stopMove();
+}
+
+void BandAxis::pasProfielToeAlle() {
+  _stepper->applySpeedAcceleration();
+  if (_stepper2) _stepper2->applySpeedAcceleration();
+}
+
+void BandAxis::zetPositieAlle(int32_t stappen) {
+  _stepper->setCurrentPosition(stappen);
+  if (_stepper2) _stepper2->setCurrentPosition(stappen);
+}
+
 bool BandAxis::kanStarten() {
   if (_stepper == nullptr) {
     Serial.println(F("Geweigerd: stappenmotor niet geinitialiseerd."));
@@ -301,7 +358,8 @@ bool BandAxis::kanStarten() {
 // Relatieve beweging zonder limietcontrole; alleen voor de homing.
 bool BandAxis::startRelatief(float mm, float mmPerS) {
   zetProfiel(mmPerS, _versnelling);
-  if (_stepper->move(mmNaarStappen(mm)) != MOVE_OK) {
+  if (_stepper->move(mmNaarStappen(mm)) != MOVE_OK ||
+      (_stepper2 && _stepper2->move(mmNaarStappen(mm)) != MOVE_OK)) {
     fout("homingbeweging kon niet worden gestart");
     return false;
   }
@@ -309,12 +367,15 @@ bool BandAxis::startRelatief(float mm, float mmPerS) {
 }
 
 void BandAxis::zetProfiel(float mmPerS, float mmPerS2) {
-  _stepper->setSpeedInHz((uint32_t)mmNaarStappen(mmPerS));  // stappen/s
-  _stepper->setAcceleration(mmNaarStappen(mmPerS2));        // stappen/s2
+  for (FastAccelStepper *s : {_stepper, _stepper2}) {
+    if (s == nullptr) continue;
+    s->setSpeedInHz((uint32_t)mmNaarStappen(mmPerS));  // stappen/s
+    s->setAcceleration(mmNaarStappen(mmPerS2));        // stappen/s2
+  }
 }
 
 void BandAxis::fout(const char *tekst) {
-  _stepper->forceStop();
+  forceStopAlle();
   _gehomed = false;  // na een fout is de positie niet meer betrouwbaar
   _toestand = Toestand::ERROR;
   _fout = tekst;
@@ -330,6 +391,7 @@ const char *BandAxis::toestandNaam() const {
     case Toestand::IDLE:   return "IDLE";
     case Toestand::HOMING: return "HOMING";
     case Toestand::MOVING: return "MOVING";
+    case Toestand::RUNNING: return "RUNNING";
     case Toestand::ERROR:  return "ERROR";
   }
   return "?";
