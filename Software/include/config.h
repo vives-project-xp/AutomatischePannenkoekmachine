@@ -12,15 +12,24 @@
 // ---------------------------------------------------------------------------
 // Pinnen
 // ---------------------------------------------------------------------------
-constexpr uint8_t PIN_STEP_BAND  = 25;  // STEP bandmotor 1
-constexpr uint8_t PIN_DIR_BAND   = 26;  // DIR bandmotor 1
-constexpr uint8_t PIN_STEP_BAND2 = 18;  // STEP bandmotor 2
-constexpr uint8_t PIN_DIR_BAND2  = 19;  // DIR bandmotor 2
+constexpr uint8_t PIN_STEP_BAND  = 18;  // STEP bandmotor 1
+constexpr uint8_t PIN_DIR_BAND   = 19;  // DIR bandmotor 1
+constexpr uint8_t PIN_STEP_BAND2 = 25;  // STEP bandmotor 2
+constexpr uint8_t PIN_DIR_BAND2  = 26;  // DIR bandmotor 2
 constexpr uint8_t PIN_STEP_SPATEL = 27;  // STEP derde motor
 constexpr uint8_t PIN_DIR_SPATEL  = 14;  // DIR derde motor
+constexpr uint8_t PIN_STEP_DRAAI  = 32;  // STEP draaimotor (nu vast LAAG)
+constexpr uint8_t PIN_DIR_DRAAI   = 33;  // DIR draaimotor (nu vast LAAG)
 constexpr uint8_t PIN_EN_DRIVERS = 13;  // EN van ALLE drivers, actief LAAG
 constexpr uint8_t PIN_S1_HOME    = 16;  // eindschakelaar S1 (NC naar GND)
+constexpr uint8_t PIN_S2_HOME    = 17;  // eindschakelaar S2 (NC naar GND)
 constexpr uint8_t PIN_NOODSTOP   = 35;  // 24V-detectie (input-only)
+
+// Trechtermotoren (DRV8825, RESET en SLP op 3V3)
+constexpr uint8_t PIN_STEP_TRECHTER1 = 18;
+constexpr uint8_t PIN_DIR_TRECHTER1  = 19;
+constexpr uint8_t PIN_STEP_TRECHTER2 = 25;
+constexpr uint8_t PIN_DIR_TRECHTER2  = 26;
 
 // Gereserveerd voor latere uitbreidingen (nog niet gebruikt):
 //   27 / 14  STEP / DIR spatelmotor
@@ -60,6 +69,19 @@ constexpr float VERSNELLING_LIMIET_MM_S2 = 2000.0f;
 constexpr uint32_t SPATEL_SNELHEID_HZ   = 400;   // stappen/s
 constexpr uint32_t SPATEL_VERSNELLING   = 2000;  // stappen/s2
 constexpr uint32_t SPATEL_RICHTING_MS   = 2000;  // elke 2 s van richting wisselen
+
+// ---------------------------------------------------------------------------
+// Trechter: heen, wachten, terug, wachten, herhalen
+// ---------------------------------------------------------------------------
+constexpr uint32_t TRECHTER_SNELHEID_HZ = 800;   // stappen/s (half zo snel als eerst)
+constexpr uint32_t TRECHTER_VERSNELLING = 4000;  // stappen/s2
+constexpr uint32_t TRECHTER_LOOPTIJD_MS = 3000;  // heen en terug duren elk 3 s
+constexpr uint32_t TRECHTER_WACHT_UIT_MS  = 5000;   // wachttijd op de verre positie
+constexpr uint32_t TRECHTER_WACHT_THUIS_MS = 15000; // wachttijd op de beginpositie
+// Draairichting heen. Beweegt de trechter eerst de verkeerde kant op: omdraaien.
+constexpr bool TRECHTER_HEEN_HOOG = true;
+// Motor 2 staat gespiegeld; zet op true als die tegen motor 1 in draait.
+constexpr bool TRECHTER_MOTOR2_OMGEKEERD = false;
 
 // ---------------------------------------------------------------------------
 // Homing

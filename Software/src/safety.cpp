@@ -41,6 +41,7 @@ struct Schakelaar {
 };
 
 Schakelaar s1{PIN_S1_HOME};
+Schakelaar s2{PIN_S2_HOME};
 
 bool isVergrendeld = false;
 bool driversActief = false;
@@ -63,12 +64,14 @@ void begin() {
 
   pinMode(PIN_NOODSTOP, INPUT);  // GPIO35 heeft geen interne pull-up
   s1.begin();
+  s2.begin();
 
   update();  // staat de 24 V bij het opstarten af, dan meteen vergrendelen
 }
 
 void update() {
   s1.update();
+  s2.update();
 
   // Noodstop: zonder ontdendering, zodat de reactie zo snel mogelijk is.
   if (!spanningAanwezig() && !isVergrendeld) {
@@ -79,6 +82,8 @@ void update() {
 }
 
 bool s1Geraakt() { return s1.stabiel; }  // NC-contact: HIGH = geraakt/kabel los
+
+bool s2Geraakt() { return s2.stabiel; }  // NC-contact: HIGH = geraakt/kabel los
 
 bool spanningAanwezig() {
   if (TEST_NOODSTOP_UIT) return true;  // testmodus, zie config.h
