@@ -1,26 +1,23 @@
 /*
  * spatel_motor.h
  *
- * Derde stappenmotor (STEP 27 / DIR 14). Voorlopig een testpatroon: de motor
- * draait continu en wisselt elke 2 s van richting.
- * De klasse is een niet-blokkerende toestandsmachine; update() keert meteen terug.
+ * Motor 4 (STEP 23 / DIR 22) kantelt de spatel. De eindschakelaar op GPIO21
+ * geeft de startpositie: spatel bijna volledig omhoog.
+ * Een keer start(): omhoog draaien tot de eindschakelaar raakt en stoppen.
+ * Niet-blokkerend: update() keert meteen terug.
  */
 #pragma once
 
 #include <Arduino.h>
 #include <FastAccelStepper.h>
 
-class SpatelMotor {
- public:
-  bool begin(FastAccelStepperEngine &engine);
-  void update();  // elke loop-doorgang aanroepen, blokkeert nooit
+namespace SpatelMotor {
 
- private:
-  enum class Fase : uint8_t { WACHT_OP_START, HEEN, TERUG };
+bool begin(FastAccelStepperEngine &engine);
+void update();  // elke loop-doorgang aanroepen, blokkeert nooit
 
-  void naarFase(Fase fase);
+void start();   // omhoog tot de eindschakelaar
+void stop();    // meteen stoppen
+const char *faseNaam();
 
-  FastAccelStepper *_stepper = nullptr;
-  Fase _fase = Fase::WACHT_OP_START;
-  uint32_t _faseStart = 0;
-};
+}  // namespace SpatelMotor

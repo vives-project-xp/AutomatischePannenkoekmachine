@@ -1,57 +1,84 @@
 /*
  * spatel_motor.cpp
  *
- * Testpatroon voor de derde motor: continu draaien en elke SPATEL_RICHTING_MS
- * van richting wisselen.
- * Het patroon loopt alleen als de drivers aan staan en er geen noodstop is.
+ * Spatelmotor: draait omhoog (runForward) tot de eindschakelaar op GPIO21
+ * raakt en stopt dan meteen. Dat is de startpositie.
  */
 #include "spatel_motor.h"
 
 #include "config.h"
 #include "safety.h"
 
-bool SpatelMotor::begin(FastAccelStepperEngine &engine) {
-  _stepper = engine.stepperConnectToPin(PIN_STEP_SPATEL);
-  if (_stepper == nullptr) return false;
-  _stepper->setDirectionPin(PIN_DIR_SPATEL);
-  // De EN-lijn is gedeeld en wordt door Safety beheerd
-  _stepper->setSpeedInHz(SPATEL_SNELHEID_HZ);
-  _stepper->setAcceleration(SPATEL_VERSNELLING);
+namespace {
+
+enum class Fase : uint8_t { UIT, OMHOOG, KLAAR, FOUT };
+
+FastAccelStepper *motor = nullptr;
+Fase fase = Fase::UIT;
+uint32_t sinds = 0;
+
+}  // namespace
+
+namespace SpatelMotor {
+
+bool begin(FastAccelStepperEngine &engine) {
+  motor = engine.stepperConnectToPin(PIN_STEP_M4);
+  if (motor == nullptr) return false;
+  // runForward() = omhoog (naar de eindschakelaar)
+  motor->setDirectionPin(PIN_DIR_M4, SPATEL_OMHOOG_DIR_HOOG);
+  motor->setSpeedInHz(SPATEL_SNELHEID_HZ);
+  motor->setAcceleration(SPATEL_VERSNELLING);
+  // EN is gedeeld en wordt door Safety beheerd: bewust geen setEnablePin().
   return true;
 }
 
-void SpatelMotor::naarFase(Fase fase) {
-  _fase = fase;
-  _faseStart = millis();
-  switch (fase) {
-    case Fase::HEEN:  _stepper->runForward();  break;
-    case Fase::TERUG: _stepper->runBackward(); break;
-    case Fase::WACHT_OP_START: break;
-  }
-}
-
-void SpatelMotor::update() {
-  if (_stepper == nullptr) return;
-
-  // Zonder aan staande drivers of bij noodstop: meteen stoppen en opnieuw beginnen
-  if (Safety::vergrendeld() || !Safety::driversAan()) {
-    if (_fase != Fase::WACHT_OP_START) {
-      _stepper->forceStop();
-      _fase = Fase::WACHT_OP_START;
-    }
+void start() {
+  if (motor == nullptr) return;
+  if (Safety::spatelGeraakt()) {
+    fase = Fase::KLAAR;
+    Serial.println(F("Spatel: eindschakelaar al ingedrukt, staat op startpositie"));
     return;
   }
+  Serial.println(F("Spatel: omhoog naar de eindschakelaar..."));
+  motor->runForward();
+  fase = Fase::OMHOOG;
+  sinds = millis();
+}
 
-  uint32_t verstreken = millis() - _faseStart;
-  switch (_fase) {
-    case Fase::WACHT_OP_START:
-      naarFase(Fase::HEEN);
-      break;
-    case Fase::HEEN:
-      if (verstreken >= SPATEL_RICHTING_MS) naarFase(Fase::TERUG);
-      break;
-    case Fase::TERUG:
-      if (verstreken >= SPATEL_RICHTING_MS) naarFase(Fase::HEEN);
-      break;
+void stop() {
+  if (motor == nullptr) return;
+  motor->forceStop();
+  fase = Fase::UIT;
+}
+
+void update() {
+  if (motor == nullptr || fase != Fase::OMHOOG) return;
+
+  if (Safety::vergrendeld()) {
+    motor->forceStop();
+    fase = Fase::FOUT;
+    Serial.println(F("!! Spatel gestopt: noodstop"));
+  } else if (Safety::spatelGeraakt()) {
+    motor->forceStop();
+    motor->setCurrentPosition(0);
+    fase = Fase::KLAAR;
+    Serial.printf("Spatel: eindschakelaar bereikt na %lu ms, gestopt\n",
+                  (unsigned long)(millis() - sinds));
+  } else if (millis() - sinds > SPATEL_HOME_MAX_MS) {
+    motor->forceStop();
+    fase = Fase::FOUT;
+    Serial.println(F("!! Spatel gestopt: eindschakelaar niet bereikt binnen de maximale tijd"));
   }
 }
+
+const char *faseNaam() {
+  switch (fase) {
+    case Fase::UIT:    return "UIT";
+    case Fase::OMHOOG: return "OMHOOG";
+    case Fase::KLAAR:  return "OP STARTPOSITIE";
+    case Fase::FOUT:   return "FOUT";
+  }
+  return "?";
+}
+
+}  // namespace SpatelMotor

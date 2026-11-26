@@ -20,6 +20,8 @@ void update();  // elke loop-doorgang aanroepen
 
 bool s1Geraakt();         // ontdenderd; true = geraakt OF kabel los
 bool s2Geraakt();         // idem voor eindschakelaar S2 (GPIO17)
+bool spatelGeraakt();      // ontdenderd; true = eindschakelaar spatel (GPIO21) geraakt OF kabel los
+bool aanUitAan();         // ontdenderd; true = AAN/UIT-schakelaar (GPIO33) staat aan
 bool spanningAanwezig();  // true = 24 V aanwezig (noodstop niet ingedrukt)
 
 // Vergrendeling: wordt gezet zodra de 24 V wegvalt en blijft staan tot reset()

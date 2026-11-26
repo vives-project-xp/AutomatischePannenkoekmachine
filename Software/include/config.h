@@ -16,10 +16,15 @@ constexpr uint8_t PIN_STEP_BAND  = 18;  // STEP bandmotor 1
 constexpr uint8_t PIN_DIR_BAND   = 19;  // DIR bandmotor 1
 constexpr uint8_t PIN_STEP_BAND2 = 25;  // STEP bandmotor 2
 constexpr uint8_t PIN_DIR_BAND2  = 26;  // DIR bandmotor 2
-constexpr uint8_t PIN_STEP_SPATEL = 27;  // STEP derde motor
-constexpr uint8_t PIN_DIR_SPATEL  = 14;  // DIR derde motor
-constexpr uint8_t PIN_STEP_DRAAI  = 32;  // STEP draaimotor (nu vast LAAG)
-constexpr uint8_t PIN_DIR_DRAAI   = 33;  // DIR draaimotor (nu vast LAAG)
+constexpr uint8_t PIN_STEP_M3    = 27;  // STEP motor 3 (trechter)
+constexpr uint8_t PIN_DIR_M3     = 14;  // DIR motor 3 (trechter)
+constexpr uint8_t PIN_STEP_M4    = 23;  // STEP motor 4 (spatel)
+constexpr uint8_t PIN_DIR_M4     = 22;  // DIR motor 4 (spatel)
+constexpr uint8_t PIN_SPATEL_HOME = 21; // eindschakelaar spatel (NC naar GND)
+constexpr uint8_t PIN_SERVO      = 32;  // servo PWM (nog niet gebruikt, vast LAAG)
+constexpr uint8_t PIN_AAN_UIT     = 33;  // AAN/UIT-schakelaar (naar GND, interne pull-up)
+// true = schakelaar AAN trekt de pin naar GND (LAAG). Werkt hij omgekeerd: false.
+constexpr bool AAN_UIT_AAN_IS_LAAG = true;
 constexpr uint8_t PIN_EN_DRIVERS = 13;  // EN van ALLE drivers, actief LAAG
 constexpr uint8_t PIN_S1_HOME    = 16;  // eindschakelaar S1 (NC naar GND)
 constexpr uint8_t PIN_S2_HOME    = 17;  // eindschakelaar S2 (NC naar GND)
@@ -32,11 +37,7 @@ constexpr uint8_t PIN_STEP_TRECHTER2 = 25;
 constexpr uint8_t PIN_DIR_TRECHTER2  = 26;
 
 // Gereserveerd voor latere uitbreidingen (nog niet gebruikt):
-//   27 / 14  STEP / DIR spatelmotor
-//   32 / 33  STEP / DIR draaimotor
-//   17 / 18  extra eindschakelaars
-//   21 / 22  I2C (SDA / SCL)
-//   23       SSR bakplaat
+//   I2C en de SSR bakplaat hebben nieuwe pinnen nodig (21-23 zijn in gebruik)
 //   34       NTC temperatuurmeting
 // Niet gebruiken: 0, 2, 5, 12, 15 (strapping) en 6-11 (flash).
 
@@ -65,10 +66,23 @@ constexpr float VERSNELLING_MM_S2  = 50.0f;   // startwaarde na opstarten
 constexpr float SNELHEID_LIMIET_MM_S   = 200.0f;
 constexpr float VERSNELLING_LIMIET_MM_S2 = 2000.0f;
 
-// Derde motor: testpatroon, continu draaien en richting wisselen (zie spatel_motor.cpp)
-constexpr uint32_t SPATEL_SNELHEID_HZ   = 400;   // stappen/s
-constexpr uint32_t SPATEL_VERSNELLING   = 2000;  // stappen/s2
-constexpr uint32_t SPATEL_RICHTING_MS   = 2000;  // elke 2 s van richting wisselen
+// Motor 3 (trechter): op positie 1 en 2 open (0,5 s), 3 s wachten, dicht (0,5 s)
+constexpr uint32_t TRECHTER_M_SNELHEID_HZ = 200;   // stappen/s
+constexpr uint32_t TRECHTER_M_VERSNELLING = 4000;  // stappen/s2
+constexpr uint32_t TRECHTER_M_DRAAI_MS    = 500;   // duur van openen en van sluiten
+constexpr uint32_t TRECHTER_M_WACHT_MS    = 3000;  // trechter open laten
+constexpr bool TRECHTER_M_RICHTING_OMGEKEERD = true;  // draairichting omkeren
+
+// Motor 4 (spatel): omhoog draaien tot de eindschakelaar (GPIO21) raakt
+constexpr uint32_t SPATEL_SNELHEID_HZ = 200;    // stappen/s
+constexpr uint32_t SPATEL_VERSNELLING = 4000;   // stappen/s2
+constexpr uint32_t SPATEL_HOME_MAX_MS = 20000;  // time-out als de schakelaar niet komt
+// Draait de spatel omlaag i.p.v. omhoog naar de eindschakelaar? Zet dit om.
+constexpr bool SPATEL_OMHOOG_DIR_HOOG = true;
+
+// Test: alleen de spatel laten werken, motor 1, 2 en 3 blijven stil.
+// Zet op false om de bandcyclus (met trechter) weer te gebruiken.
+constexpr bool TEST_ALLEEN_SPATEL = true;
 
 // ---------------------------------------------------------------------------
 // Trechter: heen, wachten, terug, wachten, herhalen
@@ -82,6 +96,25 @@ constexpr uint32_t TRECHTER_WACHT_THUIS_MS = 15000; // wachttijd op de beginposi
 constexpr bool TRECHTER_HEEN_HOOG = true;
 // Motor 2 staat gespiegeld; zet op true als die tegen motor 1 in draait.
 constexpr bool TRECHTER_MOTOR2_OMGEKEERD = false;
+
+// ---------------------------------------------------------------------------
+// Bandmotoren: naar de startpositie (rechts)
+// ---------------------------------------------------------------------------
+constexpr uint32_t BAND_HOME_SNELHEID_HZ = 500;   // stappen/s
+constexpr uint32_t BAND_HOME_VERSNELLING = 4000;   // stappen/s2
+constexpr uint32_t BAND_HOME_MAX_MS      = 60000;  // time-out als de schakelaar niet komt
+// Cyclus na het homen: wachten, 2x een stuk weg van de schakelaar, daarna terug
+constexpr uint32_t BAND_WACHT_START_MS = 3000;  // wachten op de startpositie
+constexpr uint32_t BAND_LOOPTIJD_MS    = 1500;  // elke beweging weg duurt 1,5 s
+constexpr uint32_t BAND_WACHT_UIT_MS   = 5000;  // wachten na elke beweging weg
+constexpr uint32_t BAND_CYCLUS_MS     = 60000; // elke cyclus start om de minuut
+// Elke motor heeft zijn eigen eindschakelaar rechts: motor 1 = S1 (GPIO16),
+// motor 2 = S2 (GPIO17). Zit het andersom, zet dit dan op true.
+constexpr bool BAND_SCHAKELAARS_GEWISSELD = false;
+// Draaien de motoren naar links i.p.v. rechts: zet dit om.
+constexpr bool BAND_RECHTS_DIR_HOOG = false;
+// Motor 2 staat gespiegeld; zet op true als die tegen motor 1 in draait.
+constexpr bool BAND_MOTOR2_OMGEKEERD = false;
 
 // ---------------------------------------------------------------------------
 // Homing
